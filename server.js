@@ -254,6 +254,9 @@ function getOrdemRodada(sala, ativos) {
 }
 
 function broadcastSala(sala, evento, payload) {
+  const room = io.sockets.adapter.rooms.get(sala.codigo);
+  const totalNaSala = room ? room.size : 0;
+  console.log(`[broadcast] evento=${evento} sala=${sala.codigo} sockets_na_sala=${totalNaSala}`);
   io.to(sala.codigo).emit(evento, payload);
 }
 
@@ -443,6 +446,7 @@ io.on('connection', (socket) => {
     meuJogadorId = ADM_ID;
     socket.join(codigo);
 
+    console.log(`[criar_sala] sala ${codigo} criada por ${nomeAdm}, socketId=${socket.id}`);
     callback({ ok: true, codigo, meuId: ADM_ID, token, estado: estadoPublico(salas[codigo]) });
   });
 
@@ -473,8 +477,10 @@ io.on('connection', (socket) => {
   });
 
   socket.on('entrar_sala', ({ codigo, nome }, callback) => {
+    console.log(`[entrar_sala] tentativa: codigo=${codigo} nome=${nome} socketId=${socket.id}`);
     const sala = salas[codigo];
     if (!sala) {
+      console.log(`[entrar_sala] sala ${codigo} não encontrada. Salas existentes: ${Object.keys(salas).join(', ')}`);
       callback({ ok: false, erro: 'sala_nao_encontrada' });
       return;
     }
@@ -491,6 +497,8 @@ io.on('connection', (socket) => {
     codigoSalaAtual = codigo;
     meuJogadorId = id;
     socket.join(codigo);
+
+    console.log(`[entrar_sala] ${nome} entrou na sala ${codigo}. Total jogadores agora: ${sala.jogadores.length}. Emitindo jogadores_atualizados pra sala ${codigo}...`);
 
     callback({ ok: true, codigo, meuId: id, token, estado: estadoPublico(sala) });
     broadcastSala(sala, 'jogadores_atualizados', estadoPublico(sala));
