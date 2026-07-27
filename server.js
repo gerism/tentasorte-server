@@ -394,13 +394,31 @@ function proximaRodada(sala) {
 }
 
 // ── Conexões Socket.io ──
+function gerarToken() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+function estadoCompleto(sala) {
+  return {
+    fase: sala.faseJogo,
+    rodadaNum: sala.numeroRodada,
+    jogadores: sala.jogadores.map((j) => ({ id: j.id, nome: j.nome, palitos: j.palitos, ativo: j.ativo })),
+    somaMaxima: sala.somaMaxima,
+    turnoAtualId: sala.turnoAtualId,
+    numerosUsados: sala.numerosUsados,
+    ultimaRevelacao: sala.ultimaRevelacao,
+    perdedorFinal: sala.perdedorFinal,
+  };
+}
+
 io.on('connection', (socket) => {
   let codigoSalaAtual = null;
   let meuJogadorId = null;
 
   socket.on('criar_sala', ({ nomeAdm, quantidadeJogadores }, callback) => {
     const codigo = gerarCodigoSala();
-    const adm = { id: ADM_ID, nome: nomeAdm || 'Adm', socketId: socket.id, palitos: PALITOS_INICIAIS, ativo: true };
+    const token = gerarToken();
+    const adm = { id: ADM_ID, nome: nomeAdm || 'Adm', socketId: socket.id, palitos: PALITOS_INICIAIS, ativo: true, token };
 
     salas[codigo] = {
       codigo,
@@ -418,13 +436,40 @@ io.on('connection', (socket) => {
       ultimaRevelacao: null,
       perdedorFinal: null,
       turnoAtualId: null,
+      timersRemocao: {},
     };
 
     codigoSalaAtual = codigo;
     meuJogadorId = ADM_ID;
     socket.join(codigo);
 
-    callback({ ok: true, codigo, meuId: ADM_ID, estado: estadoPublico(salas[codigo]) });
+    callback({ ok: true, codigo, meuId: ADM_ID, token, estado: estadoPublico(salas[codigo]) });
+  });
+
+  socket.on('reconectar', ({ codigo, token }, callback) => {
+    const sala = salas[codigo];
+    if (!sala) {
+      if (callback) callback({ ok: false, erro: 'sala_nao_encontrada' });
+      return;
+    }
+    const jogador = sala.jogadores.find((j) => j.token === token);
+    if (!jogador) {
+      if (callback) callback({ ok: false, erro: 'jogador_nao_encontrado' });
+      return;
+    }
+
+    // Cancela remoção pendente, se houver
+    if (sala.timersRemocao[jogador.id]) {
+      clearTimeout(sala.timersRemocao[jogador.id]);
+      delete sala.timersRemocao[jogador.id];
+    }
+
+    jogador.socketId = socket.id;
+    codigoSalaAtual = codigo;
+    meuJogadorId = jogador.id;
+    socket.join(codigo);
+
+    if (callback) callback({ ok: true, codigo, meuId: jogador.id, estado: estadoCompleto(sala) });
   });
 
   socket.on('entrar_sala', ({ codigo, nome }, callback) => {
@@ -439,14 +484,15 @@ io.on('connection', (socket) => {
     }
 
     const id = `p_${socket.id}`;
-    const jogador = { id, nome: nome || 'Jogador', socketId: socket.id, palitos: PALITOS_INICIAIS, ativo: true };
+    const token = gerarToken();
+    const jogador = { id, nome: nome || 'Jogador', socketId: socket.id, palitos: PALITOS_INICIAIS, ativo: true, token };
     sala.jogadores.push(jogador);
 
     codigoSalaAtual = codigo;
     meuJogadorId = id;
     socket.join(codigo);
 
-    callback({ ok: true, codigo, meuId: id, estado: estadoPublico(sala) });
+    callback({ ok: true, codigo, meuId: id, token, estado: estadoPublico(sala) });
     broadcastSala(sala, 'jogadores_atualizados', estadoPublico(sala));
   });
 
@@ -486,16 +532,24 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     const sala = salas[codigoSalaAtual];
-    if (!sala) return;
+    if (!sala || !meuJogadorId) return;
 
-    if (meuJogadorId === ADM_ID) {
-      // Adm saiu: encerra a sala pra todos
-      broadcastSala(sala, 'sala_encerrada', {});
-      delete salas[codigoSalaAtual];
-    } else {
-      sala.jogadores = sala.jogadores.filter((j) => j.id !== meuJogadorId);
-      broadcastSala(sala, 'jogadores_atualizados', estadoPublico(sala));
-    }
+    const jogadorId = meuJogadorId;
+    const codigo = codigoSalaAtual;
+
+    // Dá 25s de tolerância pra reconectar antes de encerrar/remover de vez
+    sala.timersRemocao[jogadorId] = setTimeout(() => {
+      const salaAtual = salas[codigo];
+      if (!salaAtual) return;
+
+      if (jogadorId === ADM_ID) {
+        broadcastSala(salaAtual, 'sala_encerrada', {});
+        delete salas[codigo];
+      } else {
+        salaAtual.jogadores = salaAtual.jogadores.filter((j) => j.id !== jogadorId);
+        broadcastSala(salaAtual, 'jogadores_atualizados', estadoPublico(salaAtual));
+      }
+    }, 25000);
   });
 });
 
