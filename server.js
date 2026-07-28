@@ -18,6 +18,43 @@ app.get('/', (req, res) => {
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.tentasorte';
 
+app.get('/privacidade', (req, res) => {
+  res.send(paginaPrivacidade());
+});
+
+function paginaPrivacidade() {
+  return `<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Política de Privacidade - TentaSorte</title>
+<style>
+body{margin:0;background:#0F5FA6;color:#fff;padding:24px;max-width:640px;margin:0 auto;
+font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6}
+h1{color:#FFD166;font-size:24px}
+h2{color:#FFD166;font-size:16px;margin-top:28px}
+p,li{color:#CDE6FF;font-size:14px}
+a{color:#FFD166}
+</style></head><body>
+<h1>Política de Privacidade — TentaSorte</h1>
+<p>Última atualização: ${new Date().toLocaleDateString('pt-BR')}</p>
+
+<h2>1. Quais dados coletamos</h2>
+<p>O TentaSorte coleta apenas o <strong>nome/apelido</strong> que você digita ao criar ou entrar em uma sala. Esse nome é visível apenas para os outros jogadores da mesma sala, durante a partida, e não fica armazenado permanentemente — é apagado quando a sala é encerrada.</p>
+<p>Não coletamos e-mail, telefone, CPF, localização ou qualquer outro dado pessoal identificável.</p>
+
+<h2>2. Anúncios</h2>
+<p>Usamos o Google AdMob para exibir anúncios dentro do app. O AdMob pode coletar identificadores do dispositivo e dados de uso para exibir anúncios relevantes, de acordo com a <a href="https://policies.google.com/privacy" target="_blank">Política de Privacidade do Google</a>.</p>
+
+<h2>3. Conexão com o servidor</h2>
+<p>Para jogar online, o app se conecta a um servidor que processa as jogadas (esconder tentos, palpites) em tempo real. Essas informações de jogo existem apenas durante a partida e são descartadas quando a sala é encerrada.</p>
+
+<h2>4. Compartilhamento de dados</h2>
+<p>Não vendemos, alugamos ou compartilhamos dados dos usuários com terceiros, exceto os provedores de anúncios (Google AdMob) necessários pro funcionamento do app.</p>
+
+<h2>5. Contato</h2>
+<p>Dúvidas sobre esta política podem ser enviadas para: <strong>[coloque seu e-mail de contato aqui]</strong></p>
+</body></html>`;
+}
+
 app.get('/jogar', (req, res) => {
   const userAgent = req.headers['user-agent'] || '';
   const codigo = (req.query.codigo || '').toString().toUpperCase();
