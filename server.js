@@ -204,6 +204,7 @@ var socket = io();
 var meuId = null, meuNome = '';
 var meuPalpiteValor = 0, ultimoEstado = { jogadores: [] };
 var chatMensagens = [], chatAberto = false, naoLidas = 0;
+var meuTentosValor = null, mostrarMeuTentos = false;
 
 function alternarChat(){
   chatAberto = !chatAberto;
@@ -296,7 +297,26 @@ function palitosRowHtml(jogadores){
 }
 
 function enviarTentos(n){
+  meuTentosValor = n;
+  mostrarMeuTentos = false;
   socket.emit('esconder_tentos', { valor: n });
+  desenharEsconderEnviado();
+}
+function alternarVerTentos(){
+  mostrarMeuTentos = !mostrarMeuTentos;
+  desenharEsconderEnviado();
+}
+function desenharEsconderEnviado(){
+  var el = document.getElementById('conteudoJogo');
+  var h = '<div class="eyebrow">Rodada '+ultimoEstado.rodadaNum+'</div>';
+  h += '<div class="wait">Você escondeu seus palitos 🥢<br>Aguardando os outros jogadores…';
+  if(mostrarMeuTentos){
+    h += '<div style="color:#FFD166;font-size:20px;font-weight:900;margin-top:10px">Você escondeu: '+meuTentosValor+' 🥢</div>';
+  }
+  h += '</div>';
+  h += '<button class="chatToggle" onclick="alternarVerTentos()">'+(mostrarMeuTentos ? '🙈 Esconder' : '👁️ Ver meu número')+'</button>';
+  h += palitosRowHtml(ultimoEstado.jogadores);
+  el.innerHTML = h;
 }
 function ajustarPalpite(delta, max, usados){
   var novo = meuPalpiteValor + delta;
@@ -339,6 +359,8 @@ socket.on('rodada_iniciada', function(msg){
   var meuAtivo = true;
   msg.jogadores.forEach(function(j){ if(j.id===meuId) meuAtivo = j.ativo; });
   ultimoEstado = msg;
+  meuTentosValor = null;
+  mostrarMeuTentos = false;
   var el = document.getElementById('conteudoJogo');
   if(!meuAtivo){
     el.innerHTML = '<div class="eyebrow">Rodada '+msg.rodadaNum+'</div><div class="wait safe">Você já tirou todos os palitos e está seguro 🛡️<br>Aguardando o resultado dos outros…</div>'+palitosRowHtml(msg.jogadores);
