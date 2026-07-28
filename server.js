@@ -41,17 +41,26 @@ align-items:center;justify-content:center;padding:20px;text-align:center;
 font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
 .tit{font-size:28px;font-weight:900;margin-bottom:10px}
 .tit b{color:#FFD166}
-p{color:#CDE6FF;font-size:14px;line-height:1.6;max-width:320px}
-.btn{margin-top:20px;padding:16px 32px;border:none;border-radius:16px;background:#FFB627;
-color:#2A1C0C;font-size:16px;font-weight:800}
+p{color:#CDE6FF;font-size:14px;line-height:1.6;max-width:320px;margin:6px 0}
+.codigoBox{background:rgba(255,182,39,.15);border:2px solid #FFB627;border-radius:16px;
+padding:14px 24px;margin:16px 0}
+.codigoLabel{color:#CDE6FF;font-size:11px;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px}
+.codigoValor{color:#FFD166;font-size:28px;font-weight:900;letter-spacing:4px}
+.btn{margin-top:16px;padding:16px 32px;border:none;border-radius:16px;background:#FFB627;
+color:#2A1C0C;font-size:16px;font-weight:800;width:100%;max-width:320px}
 .spinner{width:36px;height:36px;border:4px solid rgba(255,255,255,.2);border-top-color:#FFB627;
-border-radius:50%;animation:girar 1s linear infinite;margin-top:20px}
+border-radius:50%;animation:girar 1s linear infinite;margin:16px 0}
 @keyframes girar{to{transform:rotate(360deg)}}
 </style></head><body>
 <div class="tit">Tenta<b>Sorte</b></div>
-<p>Esse jogo é feito pra jogar direto no app 📲<br>Abrindo o TentaSorte pra você...</p>
+<p>Esse jogo é feito pra jogar direto no app 📲</p>
+<div class="codigoBox">
+  <div class="codigoLabel">Código da sala</div>
+  <div class="codigoValor">${codigo}</div>
+</div>
 <div class="spinner"></div>
-<button class="btn" onclick="window.location='${PLAY_STORE_URL}'" style="margin-top:24px">Baixar na Play Store</button>
+<p>Se o app já estiver instalado, ele vai abrir sozinho com esse código preenchido.<br>Se não abrir, baixe o app e digite esse código em "Entrar em sala".</p>
+<button class="btn" onclick="window.location='${PLAY_STORE_URL}'">📲 Baixar na Play Store</button>
 <script>
 window.location = '${linkApp}';
 setTimeout(function(){ window.location = '${PLAY_STORE_URL}'; }, 2000);
