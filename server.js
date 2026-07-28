@@ -152,6 +152,19 @@ border-radius:12px;padding:14px 16px;margin-bottom:10px}
 .palitosRow{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:10px 0 16px}
 .palitosChip{background:rgba(255,255,255,.08);border-radius:20px;padding:6px 12px;font-size:12px}
 .hint{font-size:11px;color:#CDE6FF;text-align:center;margin-top:8px}
+.chatToggle{width:100%;padding:12px;border-radius:14px;background:rgba(255,255,255,.08);
+border:1px solid rgba(255,255,255,.2);color:#fff;font-weight:700;font-size:14px;margin-top:16px}
+.chatPainel{margin-top:10px;background:rgba(0,0,0,.15);border-radius:16px;padding:12px}
+.chatMsg{margin-bottom:8px;font-size:13px}
+.chatMsgNome{color:#FFD166;font-weight:800;margin-right:6px}
+.chatMsgTexto{color:#fff}
+.chatVazio{color:#CDE6FF;font-size:13px;text-align:center;padding:10px 0}
+.chatInputRow{display:flex;gap:8px;margin-top:8px}
+.chatInput{flex:1;background:rgba(255,255,255,.1);border-radius:14px;padding:10px 14px;
+color:#fff;font-size:14px;border:none}
+.chatInput::placeholder{color:#CDE6FF}
+.chatEnviar{background:#FFB627;width:42px;height:42px;border-radius:21px;border:none;
+font-size:18px;font-weight:900;color:#2A1C0C}
 .oculto{display:none}
 </style></head><body>
 
@@ -175,12 +188,68 @@ border-radius:12px;padding:14px 16px;margin-bottom:10px}
     <a href="#" onclick="location.reload();return false;" style="color:#CDE6FF;font-size:13px;text-decoration:none">‹ Sair da sala</a>
   </div>
   <div id="conteudoJogo"></div>
+
+  <button class="chatToggle" id="btnChat" onclick="alternarChat()">💬 Chat da sala</button>
+  <div id="chatPainel" class="chatPainel oculto">
+    <div id="chatMensagens"></div>
+    <div class="chatInputRow">
+      <input id="chatInput" class="chatInput" placeholder="Escreva uma mensagem..." maxlength="200">
+      <button class="chatEnviar" onclick="enviarChatMsg()">➤</button>
+    </div>
+  </div>
 </div>
 
 <script>
 var socket = io();
 var meuId = null, meuNome = '';
 var meuPalpiteValor = 0, ultimoEstado = { jogadores: [] };
+var chatMensagens = [], chatAberto = false, naoLidas = 0;
+
+function alternarChat(){
+  chatAberto = !chatAberto;
+  naoLidas = 0;
+  document.getElementById('chatPainel').classList.toggle('oculto', !chatAberto);
+  atualizarBotaoChat();
+  desenharChat();
+}
+function atualizarBotaoChat(){
+  var btn = document.getElementById('btnChat');
+  var badge = (!chatAberto && naoLidas > 0) ? ' (' + (naoLidas > 9 ? '9+' : naoLidas) + ')' : '';
+  btn.textContent = (chatAberto ? '🔽 Fechar chat' : '💬 Chat da sala') + badge;
+}
+function desenharChat(){
+  var el = document.getElementById('chatMensagens');
+  if(chatMensagens.length === 0){
+    el.innerHTML = '<div class="chatVazio">Nenhuma mensagem ainda. Manda um oi! 👋</div>';
+    return;
+  }
+  var h = '';
+  chatMensagens.slice(-6).forEach(function(m){
+    var nome = m.id === meuId ? 'EU' : m.nome;
+    h += '<div class="chatMsg"><span class="chatMsgNome">'+nome+':</span><span class="chatMsgTexto"></span></div>';
+  });
+  el.innerHTML = h;
+  var textos = el.querySelectorAll('.chatMsgTexto');
+  chatMensagens.slice(-6).forEach(function(m, i){ textos[i].textContent = m.texto; });
+}
+function enviarChatMsg(){
+  var input = document.getElementById('chatInput');
+  var texto = input.value.trim();
+  if(!texto) return;
+  socket.emit('chat_mensagem', { texto: texto });
+  input.value = '';
+}
+document.addEventListener('DOMContentLoaded', function(){
+  var input = document.getElementById('chatInput');
+  if(input) input.addEventListener('keydown', function(e){ if(e.key === 'Enter') enviarChatMsg(); });
+});
+socket.on('chat_mensagem', function(msg){
+  chatMensagens.push(msg);
+  if(chatMensagens.length > 100) chatMensagens = chatMensagens.slice(-100);
+  if(!chatAberto) naoLidas++;
+  atualizarBotaoChat();
+  desenharChat();
+});
 
 var params = new URLSearchParams(window.location.search);
 var codigoUrl = params.get('codigo') ? params.get('codigo').toUpperCase() : '';
