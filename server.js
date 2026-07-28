@@ -73,6 +73,12 @@ border-radius:12px;padding:14px 16px;margin-bottom:10px}
 <div class="tit">Tenta<b>Sorte</b></div>
 <div class="sub">esconda, chute e zere os palitos primeiro</div>
 
+<div id="abrirApp" class="oculto" style="background:rgba(255,182,39,.12);border:1.5px solid #FFB627;border-radius:16px;padding:16px;text-align:center;margin-bottom:20px">
+  <div style="font-size:13px;color:#CDE6FF;margin-bottom:10px">Você tem um Android — jogue direto pelo app!</div>
+  <button class="btn" id="btnAbrirApp" style="margin-bottom:8px">📲 Abrir no app TentaSorte</button>
+  <div style="font-size:11px;color:#CDE6FF">Não tem o app? <a href="#" id="linkPlayStore" style="color:#FFD166;font-weight:700">Baixar na Play Store</a></div>
+</div>
+
 <div id="entrada">
   <input id="codigo" class="campo campoCodigo" placeholder="CÓDIGO DA SALA" maxlength="6">
   <input id="nome" class="campo" placeholder="Seu nome" maxlength="20">
@@ -92,7 +98,24 @@ var meuId = null, meuNome = '';
 var meuPalpiteValor = 0, ultimoEstado = { jogadores: [] };
 
 var params = new URLSearchParams(window.location.search);
-if (params.get('codigo')) document.getElementById('codigo').value = params.get('codigo').toUpperCase();
+var codigoUrl = params.get('codigo') ? params.get('codigo').toUpperCase() : '';
+if (codigoUrl) document.getElementById('codigo').value = codigoUrl;
+
+var PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.tentasorte';
+
+if (/Android/i.test(navigator.userAgent)) {
+  document.getElementById('abrirApp').classList.remove('oculto');
+  document.getElementById('linkPlayStore').href = PLAY_STORE_URL;
+  document.getElementById('btnAbrirApp').onclick = function(){
+    var linkApp = 'tentasorte://entrar?codigo=' + encodeURIComponent(codigoUrl);
+    var foiEmbora = false;
+    window.addEventListener('blur', function(){ foiEmbora = true; });
+    window.location = linkApp;
+    setTimeout(function(){
+      if(!foiEmbora){ window.location = PLAY_STORE_URL; }
+    }, 1500);
+  };
+}
 
 function entrar(){
   var codigo = document.getElementById('codigo').value.trim().toUpperCase();
