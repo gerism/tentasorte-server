@@ -51,7 +51,7 @@ a{color:#FFD166}
 <p>Não vendemos, alugamos ou compartilhamos dados dos usuários com terceiros, exceto os provedores de anúncios (Google AdMob) necessários pro funcionamento do app.</p>
 
 <h2>5. Contato</h2>
-<p>Dúvidas sobre esta política podem ser enviadas para: <strong>[coloque seu e-mail de contato aqui]</strong></p>
+<p>Dúvidas sobre esta política podem ser enviadas para: <strong>[gerismario@gmail.com]</strong></p>
 </body></html>`;
 }
 
