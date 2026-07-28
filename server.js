@@ -185,7 +185,7 @@ font-size:18px;font-weight:900;color:#2A1C0C}
 
 <div id="jogo" class="oculto">
   <div style="text-align:center;margin-bottom:14px">
-    <a href="#" onclick="location.reload();return false;" style="color:#CDE6FF;font-size:13px;text-decoration:none">‹ Sair da sala</a>
+    <a href="#" onclick="try{localStorage.removeItem('ts_sessao');}catch(e){} location.reload();return false;" style="color:#CDE6FF;font-size:13px;text-decoration:none">‹ Sair da sala</a>
   </div>
   <div id="conteudoJogo"></div>
 
@@ -281,11 +281,77 @@ function entrar(){
       return;
     }
     meuId = resposta.meuId;
+    try {
+      localStorage.setItem('ts_sessao', JSON.stringify({ codigo: codigo, token: resposta.token, nome: nome }));
+    } catch(e) {}
     document.getElementById('entrada').classList.add('oculto');
     document.getElementById('jogo').classList.remove('oculto');
     document.getElementById('conteudoJogo').innerHTML = '<div class="wait">Você está na sala!<br>Aguardando o Adm iniciar a partida…</div>';
   });
 }
+
+function tentarReconectar(){
+  var salvo;
+  try { salvo = localStorage.getItem('ts_sessao'); } catch(e) { salvo = null; }
+  if(!salvo) return;
+  var sessao;
+  try { sessao = JSON.parse(salvo); } catch(e) { return; }
+  if(!sessao || !sessao.codigo || !sessao.token) return;
+
+  socket.emit('reconectar', { codigo: sessao.codigo, token: sessao.token }, function(resposta){
+    if(!resposta.ok){
+      try { localStorage.removeItem('ts_sessao'); } catch(e) {}
+      return;
+    }
+    meuId = resposta.meuId;
+    meuNome = sessao.nome;
+    document.getElementById('entrada').classList.add('oculto');
+    document.getElementById('jogo').classList.remove('oculto');
+
+    var estado = resposta.estado;
+    ultimoEstado = estado;
+    meuPalpiteValor = 0;
+
+    if(estado.fase === 'esconder'){
+      var meuAtivo = true;
+      estado.jogadores.forEach(function(j){ if(j.id===meuId) meuAtivo = j.ativo; });
+      var el = document.getElementById('conteudoJogo');
+      if(!meuAtivo){
+        el.innerHTML = '<div class="eyebrow">Rodada '+estado.rodadaNum+'</div><div class="wait safe">Você já tirou todos os palitos e está seguro 🛡️<br>Aguardando o resultado dos outros…</div>'+palitosRowHtml(estado.jogadores);
+      } else {
+        var meuRegistro = estado.jogadores.find(function(j){ return j.id===meuId; });
+        var meusPalitos = meuRegistro ? meuRegistro.palitos : 3;
+        var h = '<div class="eyebrow">Rodada '+estado.rodadaNum+'</div><div class="card"><div class="fist">✊</div><div class="choices">';
+        for(var n=0;n<=meusPalitos;n++){ h += '<button class="choice" onclick="enviarTentos('+n+')">'+n+'</button>'; }
+        h += '</div><div class="hint">Você tem '+meusPalitos+' palito(s)</div></div>'+palitosRowHtml(estado.jogadores);
+        el.innerHTML = h;
+      }
+    } else if(estado.fase === 'palpite'){
+      desenharPalpite({ rodadaNum: estado.rodadaNum, turnoAtualId: estado.turnoAtualId, numerosUsados: estado.numerosUsados, somaMaxima: estado.somaMaxima, jogadores: estado.jogadores });
+    } else if(estado.fase === 'revelacao' && estado.ultimaRevelacao){
+      var el2 = document.getElementById('conteudoJogo');
+      var h3 = '<div class="sumCard"><div class="sumLabel">Soma real da mesa</div><div class="sumValue">'+estado.ultimaRevelacao.somaReal+'</div></div>';
+      estado.ultimaRevelacao.detalhes.forEach(function(det){
+        var souEu = det.id===meuId;
+        var sufixo = det.acertou ? ' · tirou 1! 🎯' : '';
+        h3 += '<div class="revRow'+(det.acertou?' hit':'')+'"><div><div class="revName">'+(souEu?'EU':det.nome)+'</div>';
+        h3 += '<div class="revGuess">chutou '+(det.palpite===null?0:det.palpite)+sufixo+'</div></div>';
+        h3 += '<div class="revTentos">'+det.tentos+' 🥢</div></div>';
+      });
+      h3 += palitosRowHtml(estado.jogadores);
+      if(estado.perdedorFinal){
+        h3 += '<div class="wait" style="border:1.5px solid #FFB627"><b>'+estado.perdedorFinal+'</b> ficou com os palitos... perdeu! 😅</div>';
+      } else {
+        h3 += '<div class="hint">Aguardando o Adm iniciar a próxima rodada…</div>';
+      }
+      el2.innerHTML = h3;
+    } else {
+      document.getElementById('conteudoJogo').innerHTML = '<div class="wait">Você está na sala!<br>Aguardando o Adm iniciar a partida…</div>';
+    }
+  });
+}
+socket.on('connect', tentarReconectar);
+
 
 function palitosRowHtml(jogadores){
   var h = '<div class="palitosRow">';
@@ -769,7 +835,7 @@ io.on('connection', (socket) => {
         salaAtual.jogadores = salaAtual.jogadores.filter((j) => j.id !== jogadorId);
         broadcastSala(salaAtual, 'jogadores_atualizados', estadoPublico(salaAtual));
       }
-    }, 25000);
+    }, 60000);
   });
 });
 
