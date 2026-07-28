@@ -51,7 +51,7 @@ a{color:#FFD166}
 <p>Não vendemos, alugamos ou compartilhamos dados dos usuários com terceiros, exceto os provedores de anúncios (Google AdMob) necessários pro funcionamento do app.</p>
 
 <h2>5. Contato</h2>
-<p>Dúvidas sobre esta política podem ser enviadas para: <strong>[gerismario@gmail.com]</strong></p>
+<p>Dúvidas sobre esta política podem ser enviadas para: <strong>[coloque seu e-mail de contato aqui]</strong></p>
 </body></html>`;
 }
 
@@ -421,6 +421,7 @@ function receberEsconderTentos(sala, jogadorId, valor) {
       somaMaxima: max,
       turnoAtualId: primeiroId,
       numerosUsados: [],
+      ordem: sala.ordemJogadores.map((j) => j.id),
       jogadores: sala.jogadores.map((j) => ({ id: j.id, nome: j.nome, palitos: j.palitos, ativo: j.ativo })),
     });
   }
@@ -443,7 +444,7 @@ function receberPalpite(sala, jogadorId, valor) {
     sala.ordemAtualIndex = proximoIndex;
     const proximoId = ordem[proximoIndex].id;
     sala.turnoAtualId = proximoId;
-    broadcastSala(sala, 'proxima_vez', { turnoAtualId: proximoId, numerosUsados: sala.numerosUsados });
+    broadcastSala(sala, 'proxima_vez', { turnoAtualId: proximoId, numerosUsados: sala.numerosUsados, ordem: ordem.map((j) => j.id) });
   }
   return 'ok';
 }
@@ -517,6 +518,7 @@ function estadoCompleto(sala) {
     somaMaxima: sala.somaMaxima,
     turnoAtualId: sala.turnoAtualId,
     numerosUsados: sala.numerosUsados,
+    ordem: (sala.ordemJogadores || []).map((j) => j.id),
     ultimaRevelacao: sala.ultimaRevelacao,
     perdedorFinal: sala.perdedorFinal,
   };
@@ -635,6 +637,21 @@ io.on('connection', (socket) => {
     const sala = salas[codigoSalaAtual];
     if (!sala || meuJogadorId !== ADM_ID) return;
     proximaRodada(sala);
+  });
+
+  socket.on('chat_mensagem', ({ texto }) => {
+    const sala = salas[codigoSalaAtual];
+    if (!sala || !meuJogadorId || !texto) return;
+    const textoLimpo = String(texto).trim().slice(0, 200);
+    if (!textoLimpo) return;
+    const jogador = sala.jogadores.find((j) => j.id === meuJogadorId);
+    if (!jogador) return;
+    broadcastSala(sala, 'chat_mensagem', {
+      id: meuJogadorId,
+      nome: jogador.nome,
+      texto: textoLimpo,
+      ts: Date.now(),
+    });
   });
 
   socket.on('voltar_lobby', () => {
