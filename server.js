@@ -16,9 +16,48 @@ app.get('/', (req, res) => {
   res.send('TentaSorte server rodando ✅');
 });
 
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.tentasorte';
+
 app.get('/jogar', (req, res) => {
+  const userAgent = req.headers['user-agent'] || '';
+  const codigo = (req.query.codigo || '').toString().toUpperCase();
+
+  if (/Android/i.test(userAgent)) {
+    res.send(paginaRedirecionandoAndroid(codigo));
+    return;
+  }
+
   res.send(paginaJogadorHtml());
 });
+
+function paginaRedirecionandoAndroid(codigo) {
+  const linkApp = 'tentasorte://entrar?codigo=' + encodeURIComponent(codigo);
+  return `<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TentaSorte</title>
+<style>
+body{margin:0;background:#0F5FA6;color:#fff;min-height:100vh;display:flex;flex-direction:column;
+align-items:center;justify-content:center;padding:20px;text-align:center;
+font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+.tit{font-size:28px;font-weight:900;margin-bottom:10px}
+.tit b{color:#FFD166}
+p{color:#CDE6FF;font-size:14px;line-height:1.6;max-width:320px}
+.btn{margin-top:20px;padding:16px 32px;border:none;border-radius:16px;background:#FFB627;
+color:#2A1C0C;font-size:16px;font-weight:800}
+.spinner{width:36px;height:36px;border:4px solid rgba(255,255,255,.2);border-top-color:#FFB627;
+border-radius:50%;animation:girar 1s linear infinite;margin-top:20px}
+@keyframes girar{to{transform:rotate(360deg)}}
+</style></head><body>
+<div class="tit">Tenta<b>Sorte</b></div>
+<p>Esse jogo é feito pra jogar direto no app 📲<br>Abrindo o TentaSorte pra você...</p>
+<div class="spinner"></div>
+<button class="btn" onclick="window.location='${PLAY_STORE_URL}'" style="margin-top:24px">Baixar na Play Store</button>
+<script>
+window.location = '${linkApp}';
+setTimeout(function(){ window.location = '${PLAY_STORE_URL}'; }, 2000);
+</script>
+</body></html>`;
+}
 
 function paginaJogadorHtml() {
   return `<!DOCTYPE html><html lang="pt-BR"><head>
