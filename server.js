@@ -239,10 +239,6 @@ function enviarChatMsg(){
   socket.emit('chat_mensagem', { texto: texto });
   input.value = '';
 }
-document.addEventListener('DOMContentLoaded', function(){
-  var input = document.getElementById('chatInput');
-  if(input) input.addEventListener('keydown', function(e){ if(e.key === 'Enter') enviarChatMsg(); });
-});
 socket.on('chat_mensagem', function(msg){
   chatMensagens.push(msg);
   if(chatMensagens.length > 100) chatMensagens = chatMensagens.slice(-100);
